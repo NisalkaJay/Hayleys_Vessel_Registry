@@ -2,7 +2,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace VesselRegistry.Api.Dtos
 {
-    public class VesselDto
+    public class VesselDto : IValidatableObject
     {
         public int VesselId { get; set; }
 
@@ -14,7 +14,7 @@ namespace VesselRegistry.Api.Dtos
         [RegularExpression(@"^\d{7}$", ErrorMessage = "IMO number must be exactly 7 digits")]
         public string ImoNumber { get; set; } = string.Empty;
 
-        [Required(ErrorMessage = "Vessel type is required")]
+        [Range(1, int.MaxValue, ErrorMessage = "Vessel type is required")]
         public int VesselTypeId { get; set; }
 
         public string? VesselTypeName { get; set; } // Read-only for list views
@@ -28,9 +28,19 @@ namespace VesselRegistry.Api.Dtos
         public decimal GrossTonnage { get; set; }
 
         [Required(ErrorMessage = "Year built is required")]
-        [Range(1950, 2100, ErrorMessage = "Year built must be between 1950 and the current year")]
+        [Range(1950, int.MaxValue, ErrorMessage = "Year built must be between 1950 and the current year")]
         public int YearBuilt { get; set; }
 
         public bool IsActive { get; set; } = true;
+
+        public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
+        {
+            if (YearBuilt > DateTime.UtcNow.Year)
+            {
+                yield return new ValidationResult(
+                    "Year built must be between 1950 and the current year.",
+                    new[] { nameof(YearBuilt) });
+            }
+        }
     }
 }

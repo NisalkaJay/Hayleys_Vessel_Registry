@@ -15,15 +15,19 @@ namespace VesselRegistry.Api.Middleware
         public async Task InvokeAsync(HttpContext context)
         {
             // The assessment requires checking if either header is missing[cite: 2]
-            if (!context.Request.Headers.TryGetValue("X-User-Id", out var userIdStr) ||
-                !context.Request.Headers.TryGetValue("X-Company-Id", out var companyIdStr))
+            if (!context.Request.Headers.TryGetValue("X-User-Id", out var userIdHeader) ||
+                !context.Request.Headers.TryGetValue("X-Company-Id", out var companyIdHeader) ||
+                !int.TryParse(userIdHeader, out var userId) ||
+                !int.TryParse(companyIdHeader, out var companyId) ||
+                userId <= 0 ||
+                companyId <= 0)
             {
                 context.Response.StatusCode = StatusCodes.Status400BadRequest;
                 context.Response.ContentType = "application/json";
 
                 var response = ApiResponse<object>.Error(
                     errorCode: "Validation",
-                    message: "Missing X-User-Id or X-Company-Id headers."
+                    message: "X-User-Id and X-Company-Id headers are required and must be positive integers."
                 );
 
                 var jsonOptions = new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
@@ -31,12 +35,8 @@ namespace VesselRegistry.Api.Middleware
                 return; // Return 400 immediately[cite: 2, 3]
             }
 
-            // Parse and store them in HttpContext.Items so services can access them later[cite: 2]
-            if (int.TryParse(userIdStr, out int userId) && int.TryParse(companyIdStr, out int companyId))
-            {
-                context.Items["UserId"] = userId;
-                context.Items["CompanyId"] = companyId;
-            }
+            context.Items["UserId"] = userId;
+            context.Items["CompanyId"] = companyId;
 
             await _next(context);
         }

@@ -32,6 +32,23 @@ namespace VesselRegistry.Api.Data
                 new VesselType { VesselTypeId = 4, Name = "General Cargo" },
                 new VesselType { VesselTypeId = 5, Name = "Ro-Ro" }
             );
+
+            modelBuilder.Entity<Vessel>().HasData(
+                new Vessel
+                {
+                    VesselId = 1, CompanyId = 1, VesselName = "MV Ocean Star", ImoNumber = "1234567",
+                    VesselTypeId = 1, FlagCountry = "Sri Lanka", GrossTonnage = 12500.00m,
+                    YearBuilt = 2018, IsActive = true, CreatedBy = 1,
+                    CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc)
+                },
+                new Vessel
+                {
+                    VesselId = 2, CompanyId = 2, VesselName = "MV Pacific Trader", ImoNumber = "7654321",
+                    VesselTypeId = 2, FlagCountry = "Singapore", GrossTonnage = 24800.00m,
+                    YearBuilt = 2020, IsActive = true, CreatedBy = 1,
+                    CreatedAt = new DateTime(2026, 1, 2, 0, 0, 0, DateTimeKind.Utc)
+                }
+            );
         }
     }
 }

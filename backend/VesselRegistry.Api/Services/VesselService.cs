@@ -1,3 +1,4 @@
+using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using VesselRegistry.Api.Data;
 using VesselRegistry.Api.Dtos;
@@ -17,7 +18,7 @@ namespace VesselRegistry.Api.Services
         public async Task<ApiResponse<PagedResultDto<VesselDto>>> GetPagedVesselsAsync(
             int companyId, string? search, int? vesselTypeId, bool? isActive, int page, int pageSize)
         {
-            var query = _context.Vessels.Include(v => v.VesselType).AsQueryable();
+            var query = _context.Vessels.AsNoTracking().Include(v => v.VesselType).AsQueryable();
 
             // Filter by the caller's company ID[cite: 3]
             query = query.Where(v => v.CompanyId == companyId);
@@ -107,6 +108,11 @@ namespace VesselRegistry.Api.Services
                 return ApiResponse<VesselDto>.Error("Duplicate", "IMO number already exists for this company.");
             }
 
+            if (!await _context.VesselTypes.AnyAsync(v => v.VesselTypeId == dto.VesselTypeId))
+            {
+                return ApiResponse<VesselDto>.Error("InvalidVesselType", "Vessel type does not exist.");
+            }
+
             var vessel = new Vessel
             {
                 CompanyId = companyId,
@@ -122,7 +128,14 @@ namespace VesselRegistry.Api.Services
             };
 
             _context.Vessels.Add(vessel);
-            await _context.SaveChangesAsync();
+            try
+            {
+                await _context.SaveChangesAsync();
+            }
+            catch (DbUpdateException ex) when (IsUniqueConstraintViolation(ex))
+            {
+                return ApiResponse<VesselDto>.Error("Duplicate", "IMO number already exists for this company.");
+            }
 
             dto.VesselId = vessel.VesselId;
             return ApiResponse<VesselDto>.Ok(dto);
@@ -145,6 +158,11 @@ namespace VesselRegistry.Api.Services
                 return ApiResponse<VesselDto>.Error("Duplicate", "IMO number already exists for this company.");
             }
 
+            if (!await _context.VesselTypes.AnyAsync(v => v.VesselTypeId == dto.VesselTypeId))
+            {
+                return ApiResponse<VesselDto>.Error("InvalidVesselType", "Vessel type does not exist.");
+            }
+
             vessel.VesselName = dto.VesselName;
             vessel.ImoNumber = dto.ImoNumber;
             vessel.VesselTypeId = dto.VesselTypeId;
@@ -155,7 +173,14 @@ namespace VesselRegistry.Api.Services
             vessel.ModifiedBy = userId;
             vessel.ModifiedAt = DateTime.UtcNow;
 
-            await _context.SaveChangesAsync();
+            try
+            {
+                await _context.SaveChangesAsync();
+            }
+            catch (DbUpdateException ex) when (IsUniqueConstraintViolation(ex))
+            {
+                return ApiResponse<VesselDto>.Error("Duplicate", "IMO number already exists for this company.");
+            }
 
             return ApiResponse<VesselDto>.Ok(dto);
         }
@@ -177,6 +202,12 @@ namespace VesselRegistry.Api.Services
             await _context.SaveChangesAsync();
 
             return ApiResponse<bool>.Ok(true);
+        }
+
+        private static bool IsUniqueConstraintViolation(DbUpdateException exception)
+        {
+            return exception.InnerException is SqlException sqlException &&
+                (sqlException.Number == 2601 || sqlException.Number == 2627);
         }
     }
 }

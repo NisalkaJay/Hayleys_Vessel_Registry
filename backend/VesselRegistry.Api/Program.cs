@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using VesselRegistry.Api.Data;
+using VesselRegistry.Api.Entities;
 using VesselRegistry.Api.Middleware;
 using VesselRegistry.Api.Services;
 
@@ -31,6 +32,57 @@ builder.Services.AddCors(options =>
 });
 
 var app = builder.Build(); 
+
+using (var scope = app.Services.CreateScope())
+{
+    var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    await dbContext.Database.MigrateAsync();
+
+    if (!await dbContext.VesselTypes.AnyAsync())
+    {
+        dbContext.VesselTypes.AddRange(
+            new VesselType { VesselTypeId = 1, Name = "Bulk Carrier" },
+            new VesselType { VesselTypeId = 2, Name = "Container" },
+            new VesselType { VesselTypeId = 3, Name = "Tanker" },
+            new VesselType { VesselTypeId = 4, Name = "General Cargo" },
+            new VesselType { VesselTypeId = 5, Name = "Ro-Ro" });
+        await dbContext.SaveChangesAsync();
+    }
+
+    if (!await dbContext.Vessels.AnyAsync())
+    {
+        dbContext.Vessels.AddRange(
+            new Vessel
+            {
+                VesselId = 1,
+                CompanyId = 1,
+                VesselName = "MV Ocean Star",
+                ImoNumber = "1234567",
+                VesselTypeId = 1,
+                FlagCountry = "Sri Lanka",
+                GrossTonnage = 12500.00m,
+                YearBuilt = 2018,
+                IsActive = true,
+                CreatedBy = 1,
+                CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc)
+            },
+            new Vessel
+            {
+                VesselId = 2,
+                CompanyId = 2,
+                VesselName = "MV Pacific Trader",
+                ImoNumber = "7654321",
+                VesselTypeId = 2,
+                FlagCountry = "Singapore",
+                GrossTonnage = 24800.00m,
+                YearBuilt = 2020,
+                IsActive = true,
+                CreatedBy = 1,
+                CreatedAt = new DateTime(2026, 1, 2, 0, 0, 0, DateTimeKind.Utc)
+            });
+        await dbContext.SaveChangesAsync();
+    }
+}
 
 // Configure the HTTP request pipeline.
 // 1. Catch all unexpected errors first[cite: 4]

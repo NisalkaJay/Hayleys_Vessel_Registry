@@ -22,6 +22,13 @@ namespace VesselRegistry.Api.Controllers
         public async Task<IActionResult> GetVessels(
             [FromQuery] string? search, [FromQuery] int? vesselTypeId, [FromQuery] bool? isActive, [FromQuery] int page = 1, [FromQuery] int pageSize = 10)
         {
+            if (page < 1 || pageSize < 1 || pageSize > 100)
+            {
+                return BadRequest(ApiResponse<object>.Error(
+                    "Validation",
+                    "Page must be at least 1 and pageSize must be between 1 and 100."));
+            }
+
             var result = await _vesselService.GetPagedVesselsAsync(CompanyId, search, vesselTypeId, isActive, page, pageSize);
             return Ok(result);
         }
@@ -55,6 +62,9 @@ namespace VesselRegistry.Api.Controllers
             if (result.ErrorCode == "Duplicate")
                 return Conflict(result); // 409 for duplicate IMO[cite: 3]
 
+            if (result.ErrorCode == "InvalidVesselType")
+                return BadRequest(result);
+
             return CreatedAtAction(nameof(GetVessel), new { id = result.Data!.VesselId }, result);
         }
 
@@ -77,6 +87,9 @@ namespace VesselRegistry.Api.Controllers
 
             if (result.ErrorCode == "Duplicate")
                 return Conflict(result); // 409[cite: 3]
+
+            if (result.ErrorCode == "InvalidVesselType")
+                return BadRequest(result);
 
             return Ok(result);
         }
