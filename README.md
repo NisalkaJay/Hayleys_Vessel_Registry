@@ -224,6 +224,19 @@ Backend:
 dotnet build ".\backend\VesselRegistry.Api\VesselRegistry.Api.csproj"
 ```
 
+SQL Server integration tests:
+
+```powershell
+dotnet test ".\backend\VesselRegistry.Api.Tests\VesselRegistry.Api.Tests.csproj"
+```
+
+The integration-test fixture uses the existing local SQL Server instance but
+creates a separate `VesselRegistry_IntegrationTests_<processId>` database. It applies the
+real EF Core migrations, runs HTTP requests through the real application
+pipeline, verifies Dapper queries and SQL Server constraints, and drops only
+that dedicated test database during cleanup. It never uses the normal
+`VesselRegistryDb` development database.
+
 Frontend:
 
 ```powershell
@@ -233,9 +246,6 @@ npm run build
 
 ## Skipped work
 
-- Full backend integration tests against a live SQL Server were not added; the
-  xUnit service tests use an EF Core in-memory database and the PowerShell
-  endpoint test script remains available for terminal-based verification.
 - Automated Angular unit and end-to-end tests were not added because the
   requested scope prioritized the working screens and API integration.
 - Production deployment, authentication/authorization, and secret management
@@ -259,4 +269,4 @@ npm run build
 ## Approximate implementation time
 
 The implementation, troubleshooting, endpoint verification, frontend work,
-and documentation took approximately one to two working days.
+and documentation took approximately three to four working days.
