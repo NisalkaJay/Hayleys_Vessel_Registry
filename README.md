@@ -215,6 +215,7 @@ development database first if repeatable seed-only results are required.
 - Shared form-field, form-select, and data-table components.
 - Tenant, envelope, and API-error HTTP interceptors.
 - Create, edit, deactivate, reactivate, not-found, loading, empty, and error states.
+- Vessel list search, filters, and pagination are preserved in the URL for refreshes and shareable views.
 
 ## Build validation
 

@@ -2,7 +2,7 @@ import { Component, DestroyRef, OnInit, computed, inject, signal } from '@angula
 import { CommonModule } from '@angular/common';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
-import { RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { debounceTime, distinctUntilChanged, switchMap } from 'rxjs';
 import { DataTableComponent, PageChange, TableColumn } from '../../shared/data-table/data-table.component';
 import { ToastService } from '../../core/services/toast.service';
@@ -19,6 +19,8 @@ export class VesselListComponent implements OnInit {
   private readonly service = inject(VesselService);
   private readonly toast = inject(ToastService);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
   readonly search = new FormControl('', { nonNullable: true });
   readonly typeFilter = new FormControl('', { nonNullable: true });
   readonly statusFilter = new FormControl('all', { nonNullable: true });
@@ -38,11 +40,46 @@ export class VesselListComponent implements OnInit {
   ];
 
   ngOnInit(): void {
+    this.restoreStateFromUrl();
     this.service.getTypes().pipe(takeUntilDestroyed(this.destroyRef)).subscribe(types => this.types.set(types));
     this.search.valueChanges.pipe(debounceTime(300), distinctUntilChanged(), takeUntilDestroyed(this.destroyRef))
-      .subscribe(() => { this.page.set(1); this.load(); });
-    this.typeFilter.valueChanges.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => { this.page.set(1); this.load(); });
-    this.statusFilter.valueChanges.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => { this.page.set(1); this.load(); });
+      .subscribe(() => { this.page.set(1); this.updateUrlAndLoad(); });
+    this.typeFilter.valueChanges.pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(() => { this.page.set(1); this.updateUrlAndLoad(); });
+    this.statusFilter.valueChanges.pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(() => { this.page.set(1); this.updateUrlAndLoad(); });
+    this.load();
+  }
+
+  private restoreStateFromUrl(): void {
+    const params = this.route.snapshot.queryParamMap;
+    const page = Number(params.get('page'));
+    const pageSize = Number(params.get('pageSize'));
+
+    this.search.setValue(params.get('search') ?? '', { emitEvent: false });
+    this.typeFilter.setValue(params.get('type') ?? '', { emitEvent: false });
+    this.statusFilter.setValue(this.readStatus(params.get('status')), { emitEvent: false });
+    if (Number.isInteger(page) && page > 0) this.page.set(page);
+    if (Number.isInteger(pageSize) && pageSize > 0 && pageSize <= 100) this.pageSize.set(pageSize);
+  }
+
+  private readStatus(value: string | null): string {
+    return value === 'active' || value === 'inactive' ? value : 'all';
+  }
+
+  private updateUrlAndLoad(): void {
+    void this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: {
+        search: this.search.value.trim() || null,
+        type: this.typeFilter.value || null,
+        status: this.statusFilter.value === 'all' ? null : this.statusFilter.value,
+        page: this.page() === 1 ? null : this.page(),
+        pageSize: this.pageSize() === 10 ? null : this.pageSize()
+      },
+      queryParamsHandling: 'merge',
+      replaceUrl: true
+    });
     this.load();
   }
 
@@ -64,7 +101,7 @@ export class VesselListComponent implements OnInit {
 
   changePage(event: PageChange): void {
     this.page.set(event.page);
-    this.load();
+    this.updateUrlAndLoad();
   }
 
   deactivate(vessel: Vessel): void {
