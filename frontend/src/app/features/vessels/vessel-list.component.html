@@ -18,12 +18,13 @@
 @if (loading()) { <div class="state card">Loading vessels...</div> }
 @else if (error()) { <div class="state card error-state">{{ error() }} <button class="button" (click)="load()">Retry</button></div> }
 @else {
-  <app-data-table [columns]="columns" [rows]="vessels()" [page]="page()" [pageSize]="pageSize()" [totalCount]="totalCount()" [rowTemplate]="rowTemplate" (pageChange)="changePage($event)" />
+  <app-data-table [columns]="columns" [rows]="vessels()" [page]="page()" [pageSize]="pageSize()" [totalCount]="totalCount()" [rowTemplate]="rowTemplate"
+    [sortBy]="sortBy()" [sortDirection]="sortDirection()" (pageChange)="changePage($event)" (sortChange)="changeSort($event)" />
 }
 
 <ng-template #rowTemplate let-vessel>
   <tr>
-    <td>{{ vessel.vesselName }}</td><td class="mono">{{ vessel.imoNumber }}</td><td>{{ vessel.vesselTypeName }}</td>
+    <td><a [routerLink]="['/vessels', vessel.vesselId]">{{ vessel.vesselName }}</a></td><td class="mono">{{ vessel.imoNumber }}</td><td>{{ vessel.vesselTypeName }}</td>
     <td>{{ vessel.flagCountry }}</td><td>{{ vessel.grossTonnage | number }}</td><td>{{ vessel.yearBuilt }}</td>
     <td><span class="status" [class.inactive]="!vessel.isActive">{{ vessel.isActive ? 'Active' : 'Inactive' }}</span></td>
     <td class="actions"><a [routerLink]="['/vessels', vessel.vesselId, 'edit']">Edit</a>

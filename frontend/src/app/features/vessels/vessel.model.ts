@@ -21,3 +21,5 @@ export interface PagedResult {
   page: number;
   pageSize: number;
 }
+
+export type SortDirection = 'asc' | 'desc';

@@ -1,8 +1,9 @@
 import { CommonModule } from '@angular/common';
 import { Component, input, output, TemplateRef } from '@angular/core';
 
-export type TableColumn = { key: string; label: string };
+export type TableColumn = { key: string; label: string; sortable?: boolean };
 export type PageChange = { page: number; pageSize: number };
+export type SortChange = { sortBy: string; sortDirection: 'asc' | 'desc' };
 
 @Component({
   selector: 'app-data-table',
@@ -10,7 +11,15 @@ export type PageChange = { page: number; pageSize: number };
   template: `
     <div class="table-wrap">
       <table>
-        <thead><tr>@for (column of columns(); track column.key) { <th>{{ column.label }}</th> }</tr></thead>
+        <thead><tr>@for (column of columns(); track column.key) {
+          <th>
+            @if (column.sortable !== false) {
+              <button type="button" class="sort-button" (click)="sort(column.key)">
+                {{ column.label }} @if (sortBy() === column.key) { <span>{{ sortDirection() === 'asc' ? '▲' : '▼' }}</span> }
+              </button>
+            } @else { {{ column.label }} }
+          </th>
+        }</tr></thead>
         <tbody>
           @for (row of rows(); track trackRow(row)) {
             <ng-container [ngTemplateOutlet]="rowTemplate()" [ngTemplateOutletContext]="{ $implicit: row }" />
@@ -37,6 +46,9 @@ export class DataTableComponent {
   readonly totalCount = input.required<number>();
   readonly pageChange = output<PageChange>();
   readonly rowTemplate = input.required<TemplateRef<unknown>>();
+  readonly sortBy = input('');
+  readonly sortDirection = input<'asc' | 'desc'>('asc');
+  readonly sortChange = output<SortChange>();
 
   trackRow(row: unknown): unknown {
     return (row as { vesselId?: number }).vesselId ?? row;
@@ -44,5 +56,10 @@ export class DataTableComponent {
 
   changePage(page: number): void {
     this.pageChange.emit({ page, pageSize: this.pageSize() });
+  }
+
+  sort(column: string): void {
+    const direction = this.sortBy() === column && this.sortDirection() === 'asc' ? 'desc' : 'asc';
+    this.sortChange.emit({ sortBy: column, sortDirection: direction });
   }
 }

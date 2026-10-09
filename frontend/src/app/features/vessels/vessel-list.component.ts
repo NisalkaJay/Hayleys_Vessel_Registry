@@ -4,9 +4,9 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { debounceTime, distinctUntilChanged, switchMap } from 'rxjs';
-import { DataTableComponent, PageChange, TableColumn } from '../../shared/data-table/data-table.component';
+import { DataTableComponent, PageChange, SortChange, TableColumn } from '../../shared/data-table/data-table.component';
 import { ToastService } from '../../core/services/toast.service';
-import { Vessel, VesselType } from './vessel.model';
+import { SortDirection, Vessel, VesselType } from './vessel.model';
 import { VesselService } from './vessel.service';
 
 @Component({
@@ -31,12 +31,14 @@ export class VesselListComponent implements OnInit {
   readonly page = signal(1);
   readonly pageSize = signal(10);
   readonly totalCount = signal(0);
+  readonly sortBy = signal('createdAt');
+  readonly sortDirection = signal<SortDirection>('desc');
   readonly hasRows = computed(() => this.vessels().length > 0);
   readonly columns: TableColumn[] = [
     { key: 'vesselName', label: 'Vessel name' }, { key: 'imoNumber', label: 'IMO' },
     { key: 'vesselTypeName', label: 'Type' }, { key: 'flagCountry', label: 'Flag' },
     { key: 'grossTonnage', label: 'GT' }, { key: 'yearBuilt', label: 'Year built' },
-    { key: 'isActive', label: 'Status' }, { key: 'actions', label: 'Actions' }
+    { key: 'isActive', label: 'Status' },     { key: 'actions', label: 'Actions', sortable: false }
   ];
 
   ngOnInit(): void {
@@ -59,6 +61,8 @@ export class VesselListComponent implements OnInit {
     this.search.setValue(params.get('search') ?? '', { emitEvent: false });
     this.typeFilter.setValue(params.get('type') ?? '', { emitEvent: false });
     this.statusFilter.setValue(this.readStatus(params.get('status')), { emitEvent: false });
+    this.sortBy.set(params.get('sortBy') || 'createdAt');
+    this.sortDirection.set(params.get('sortDirection') === 'asc' ? 'asc' : 'desc');
     if (Number.isInteger(page) && page > 0) this.page.set(page);
     if (Number.isInteger(pageSize) && pageSize > 0 && pageSize <= 100) this.pageSize.set(pageSize);
   }
@@ -75,7 +79,9 @@ export class VesselListComponent implements OnInit {
         type: this.typeFilter.value || null,
         status: this.statusFilter.value === 'all' ? null : this.statusFilter.value,
         page: this.page() === 1 ? null : this.page(),
-        pageSize: this.pageSize() === 10 ? null : this.pageSize()
+        pageSize: this.pageSize() === 10 ? null : this.pageSize(),
+        sortBy: this.sortBy() === 'createdAt' ? null : this.sortBy(),
+        sortDirection: this.sortBy() === 'createdAt' && this.sortDirection() === 'desc' ? null : this.sortDirection()
       },
       queryParamsHandling: 'merge',
       replaceUrl: true
@@ -93,6 +99,7 @@ export class VesselListComponent implements OnInit {
       isActive: status === 'all' ? undefined : status === 'active',
       page: this.page(),
       pageSize: this.pageSize()
+      , sortBy: this.sortBy(), sortDirection: this.sortDirection()
     }).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: result => { this.vessels.set(result.items); this.totalCount.set(result.totalCount); this.loading.set(false); },
       error: () => { this.error.set('We could not load the vessels. Please try again.'); this.loading.set(false); }
@@ -101,6 +108,13 @@ export class VesselListComponent implements OnInit {
 
   changePage(event: PageChange): void {
     this.page.set(event.page);
+    this.updateUrlAndLoad();
+  }
+
+  changeSort(event: SortChange): void {
+    this.sortBy.set(event.sortBy);
+    this.sortDirection.set(event.sortDirection);
+    this.page.set(1);
     this.updateUrlAndLoad();
   }
 
