@@ -1,0 +1,19 @@
+@if (notFound()) {
+  <section class="state card"><h1>Vessel not found</h1><p>This vessel does not exist or is not part of your company.</p><a class="button primary" routerLink="/vessels">Back to vessels</a></section>
+} @else if (loading()) {
+  <div class="state card">Loading vessel...</div>
+} @else {
+  <section class="page-heading"><div><p class="eyebrow">Fleet operations</p><h1>{{ vesselId() ? 'Edit vessel' : 'Add vessel' }}</h1><p class="muted">Keep vessel information accurate and up to date.</p></div><a class="button" routerLink="/vessels">Cancel</a></section>
+  <form class="form-card card" [formGroup]="form" (ngSubmit)="save()">
+    <div class="form-grid">
+      <app-form-field id="vesselName" label="Vessel name" [control]="form.controls.vesselName" [serverError]="serverErrors()['vesselName']?.[0]" />
+      <app-form-field id="imoNumber" label="IMO number" [control]="form.controls.imoNumber" placeholder="7 digits" [serverError]="serverErrors()['imoNumber']?.[0]" />
+      <app-form-select id="vesselTypeId" label="Vessel type" [control]="form.controls.vesselTypeId" [options]="typeOptions" [serverError]="serverErrors()['vesselTypeId']?.[0]" />
+      <app-form-field id="flagCountry" label="Flag country" [control]="form.controls.flagCountry" [serverError]="serverErrors()['flagCountry']?.[0]" />
+      <app-form-field id="grossTonnage" label="Gross tonnage" type="number" [control]="form.controls.grossTonnage" [serverError]="serverErrors()['grossTonnage']?.[0]" />
+      <app-form-field id="yearBuilt" label="Year built" type="number" [control]="form.controls.yearBuilt" [serverError]="serverErrors()['yearBuilt']?.[0]" />
+    </div>
+    @if (vesselId()) { <label class="checkbox"><input type="checkbox" formControlName="isActive" /> Active</label> }
+    <div class="form-actions"><a routerLink="/vessels">Cancel</a><button class="button primary" type="submit" [disabled]="form.invalid || saving()">{{ saving() ? 'Saving...' : 'Save vessel' }}</button></div>
+  </form>
+}
