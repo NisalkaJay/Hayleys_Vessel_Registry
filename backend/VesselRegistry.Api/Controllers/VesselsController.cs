@@ -20,7 +20,9 @@ namespace VesselRegistry.Api.Controllers
 
         [HttpGet]
         public async Task<IActionResult> GetVessels(
-            [FromQuery] string? search, [FromQuery] int? vesselTypeId, [FromQuery] bool? isActive, [FromQuery] int page = 1, [FromQuery] int pageSize = 10)
+            [FromQuery] string? search, [FromQuery] int? vesselTypeId, [FromQuery] bool? isActive,
+            [FromQuery] int page = 1, [FromQuery] int pageSize = 10,
+            [FromQuery] string? sortBy = null, [FromQuery] string? sortDirection = null)
         {
             if (page < 1 || pageSize < 1 || pageSize > 100)
             {
@@ -29,7 +31,7 @@ namespace VesselRegistry.Api.Controllers
                     "Page must be at least 1 and pageSize must be between 1 and 100."));
             }
 
-            var result = await _vesselService.GetPagedVesselsAsync(CompanyId, search, vesselTypeId, isActive, page, pageSize);
+            var result = await _vesselService.GetPagedVesselsAsync(CompanyId, search, vesselTypeId, isActive, page, pageSize, sortBy, sortDirection);
             return Ok(result);
         }
 

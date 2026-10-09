@@ -1,4 +1,6 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.OpenApi;
+using System.Reflection;
 using VesselRegistry.Api.Data;
 using VesselRegistry.Api.Entities;
 using VesselRegistry.Api.Middleware;
@@ -13,6 +15,38 @@ builder.Services.AddControllers()
             // Disable default automatic 400 responses to use our custom ApiResponse envelope
             options.SuppressModelStateInvalidFilter = true;
         });
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen(options =>
+{
+    options.SwaggerDoc("v1", new OpenApiInfo
+    {
+        Title = "Vessel Registry API",
+        Version = "v1",
+        Description = """
+            Tenant-aware vessel management API. Every request requires X-User-Id and X-Company-Id.
+
+            Example:
+            GET /api/vessels?page=1&pageSize=10&sortBy=vesselName&sortDirection=asc
+            Headers: X-User-Id: 1, X-Company-Id: 1
+            """
+    });
+    options.AddSecurityDefinition("TenantHeaders", new OpenApiSecurityScheme
+    {
+        Type = SecuritySchemeType.ApiKey,
+        In = ParameterLocation.Header,
+        Name = "X-Company-Id",
+        Description = "Company ID. Also send X-User-Id."
+    });
+    options.AddSecurityDefinition("UserHeader", new OpenApiSecurityScheme
+    {
+        Type = SecuritySchemeType.ApiKey,
+        In = ParameterLocation.Header,
+        Name = "X-User-Id",
+        Description = "Positive user ID."
+    });
+    options.IncludeXmlComments(Path.Combine(AppContext.BaseDirectory,
+        $"{Assembly.GetExecutingAssembly().GetName().Name}.xml"));
+});
 
 
 builder.Services.AddScoped<IVesselTypeService, VesselTypeService>();
@@ -32,6 +66,9 @@ builder.Services.AddCors(options =>
 });
 
 var app = builder.Build(); 
+
+app.UseSwagger();
+app.UseSwaggerUI();
 
 using (var scope = app.Services.CreateScope())
 {

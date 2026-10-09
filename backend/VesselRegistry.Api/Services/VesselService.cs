@@ -1,3 +1,4 @@
+using Dapper;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using VesselRegistry.Api.Data;
@@ -9,56 +10,67 @@ namespace VesselRegistry.Api.Services
     public class VesselService : IVesselService
     {
         private readonly AppDbContext _context;
+        private readonly string _connectionString;
 
-        public VesselService(AppDbContext context)
+        public VesselService(AppDbContext context, IConfiguration configuration)
         {
             _context = context;
+            _connectionString = configuration.GetConnectionString("DefaultConnection")
+                ?? throw new InvalidOperationException("DefaultConnection is not configured.");
         }
 
         public async Task<ApiResponse<PagedResultDto<VesselDto>>> GetPagedVesselsAsync(
-            int companyId, string? search, int? vesselTypeId, bool? isActive, int page, int pageSize)
+            int companyId, string? search, int? vesselTypeId, bool? isActive, int page, int pageSize,
+            string? sortBy, string? sortDirection)
         {
-            var query = _context.Vessels.AsNoTracking().Include(v => v.VesselType).AsQueryable();
-
-            // Filter by the caller's company ID[cite: 3]
-            query = query.Where(v => v.CompanyId == companyId);
-
-            if (isActive.HasValue)
+            var orderColumn = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
             {
-                query = query.Where(v => v.IsActive == isActive.Value);
-            }
+                ["vesselName"] = "v.VesselName",
+                ["imoNumber"] = "v.ImoNumber",
+                ["vesselTypeName"] = "vt.Name",
+                ["flagCountry"] = "v.FlagCountry",
+                ["grossTonnage"] = "v.GrossTonnage",
+                ["yearBuilt"] = "v.YearBuilt",
+                ["isActive"] = "v.IsActive"
+            };
+            var selectedColumn = orderColumn.TryGetValue(sortBy ?? string.Empty, out var column)
+                ? column
+                : "v.CreatedAt";
+            var direction = string.Equals(sortDirection, "asc", StringComparison.OrdinalIgnoreCase) ? "ASC" : "DESC";
+            var where = new List<string> { "v.CompanyId = @CompanyId" };
+            if (isActive.HasValue) where.Add("v.IsActive = @IsActive");
+            if (vesselTypeId.HasValue) where.Add("v.VesselTypeId = @VesselTypeId");
+            if (!string.IsNullOrWhiteSpace(search)) where.Add("(v.VesselName LIKE @Search OR v.ImoNumber LIKE @Search)");
 
-            if (vesselTypeId.HasValue)
+            var sql = $"""
+                SELECT COUNT(1)
+                FROM Vessels v
+                INNER JOIN VesselTypes vt ON vt.VesselTypeId = v.VesselTypeId
+                WHERE {string.Join(" AND ", where)};
+
+                SELECT v.VesselId, v.VesselName, v.ImoNumber, v.VesselTypeId,
+                       vt.Name AS VesselTypeName, v.FlagCountry, v.GrossTonnage,
+                       v.YearBuilt, v.IsActive
+                FROM Vessels v
+                INNER JOIN VesselTypes vt ON vt.VesselTypeId = v.VesselTypeId
+                WHERE {string.Join(" AND ", where)}
+                ORDER BY {selectedColumn} {direction}, v.VesselId
+                OFFSET @Offset ROWS FETCH NEXT @PageSize ROWS ONLY;
+                """;
+            var parameters = new
             {
-                query = query.Where(v => v.VesselTypeId == vesselTypeId.Value);
-            }
-
-            if (!string.IsNullOrWhiteSpace(search))
-            {
-                // Search matches vessel name or IMO number[cite: 3]
-                query = query.Where(v => v.VesselName.Contains(search) || v.ImoNumber.Contains(search));
-            }
-
-            // Do filtering and paging in the database query[cite: 3]
-            var totalCount = await query.CountAsync();
-
-            var items = await query
-                .OrderByDescending(v => v.CreatedAt)
-                .Skip((page - 1) * pageSize)
-                .Take(pageSize)
-                .Select(v => new VesselDto
-                {
-                    VesselId = v.VesselId,
-                    VesselName = v.VesselName,
-                    ImoNumber = v.ImoNumber,
-                    VesselTypeId = v.VesselTypeId,
-                    VesselTypeName = v.VesselType.Name,
-                    FlagCountry = v.FlagCountry,
-                    GrossTonnage = v.GrossTonnage,
-                    YearBuilt = v.YearBuilt,
-                    IsActive = v.IsActive
-                })
-                .ToListAsync();
+                CompanyId = companyId,
+                IsActive = isActive,
+                VesselTypeId = vesselTypeId,
+                Search = string.IsNullOrWhiteSpace(search) ? null : $"%{search.Trim()}%",
+                Offset = (page - 1) * pageSize,
+                PageSize = pageSize
+            };
+            await using var connection = new SqlConnection(_connectionString);
+            await connection.OpenAsync();
+            using var grid = await connection.QueryMultipleAsync(sql, parameters);
+            var totalCount = await grid.ReadSingleAsync<int>();
+            var items = (await grid.ReadAsync<VesselDto>()).ToList();
 
             var result = new PagedResultDto<VesselDto>
             {
