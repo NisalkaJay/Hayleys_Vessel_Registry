@@ -1,0 +1,8 @@
+<header class="navbar">
+  <a routerLink="/vessels" class="brand"><span class="brand-mark">VR</span><span>Vessel Registry</span></a>
+  <nav><a routerLink="/vessels">Vessels</a><a routerLink="/vessels/new" class="nav-cta">Add vessel</a></nav>
+</header>
+<main class="shell"><router-outlet /></main>
+@if (toast.current(); as notification) {
+  <div class="toast" [class.error]="notification.type === 'error'">{{ notification.message }}</div>
+}
