@@ -216,6 +216,7 @@ development database first if repeatable seed-only results are required.
 - Tenant, envelope, and API-error HTTP interceptors.
 - Create, edit, deactivate, reactivate, not-found, loading, empty, and error states.
 - Vessel list search, filters, and pagination are preserved in the URL for refreshes and shareable views.
+- Optional enhancements: xUnit service tests, Swagger UI at `/swagger`, Dapper-backed list paging, server-side sortable columns, and a read-only vessel detail page.
 
 ## Build validation
 
@@ -234,8 +235,9 @@ npm run build
 
 ## Skipped work
 
-- Automated backend integration tests were not added; the PowerShell endpoint
-  test script is provided for terminal-based verification.
+- Full backend integration tests against a live SQL Server were not added; the
+  xUnit service tests use an EF Core in-memory database and the PowerShell
+  endpoint test script remains available for terminal-based verification.
 - Automated Angular unit and end-to-end tests were not added because the
   requested scope prioritized the working screens and API integration.
 - Production deployment, authentication/authorization, and secret management
@@ -255,6 +257,8 @@ npm run build
 - The database can be recreated during development when migration history is
   inconsistent. Production databases should be backed up and migrated using
   an approved deployment process.
+- Dapper is used only for the filtered vessel list query; EF Core remains the
+  source of truth for migrations, writes, and detail reads.
 
 ## Approximate implementation time
 
