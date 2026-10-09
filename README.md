@@ -269,4 +269,4 @@ npm run build
 ## Approximate implementation time
 
 The implementation, troubleshooting, endpoint verification, frontend work,
-and documentation took approximately three to four working days.
+and documentation took approximately three working days.
