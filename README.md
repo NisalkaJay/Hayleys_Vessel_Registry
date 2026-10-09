@@ -28,8 +28,8 @@ The application was developed and verified with:
 - .NET target framework `net10.0`
 - Node.js `22.17.0`
 - npm `10.9.2`
-- Angular CLI `20.3.39`
-- Angular `20.3.33`
+- Angular CLI `21.0.0`
+- Angular `21.0.0`
 - Microsoft SQL Server 2025 (RTM) `17.0.1000.7` (X64)
 - SQL Server Enterprise Developer Edition (64-bit) on Windows 10 Pro
 - SQL Server instance on `localhost`, using Windows authentication
