@@ -30,11 +30,9 @@ The application was developed and verified with:
 - npm `10.9.2`
 - Angular CLI `20.3.39`
 - Angular `20.3.33`
-- SQL Server on `localhost`, using Windows authentication
-
-The SQL Server edition was not available for verification on the development
-machine. The project assumes a local SQL Server or LocalDB instance that
-supports the SQL Server connection string below.
+- Microsoft SQL Server 2025 (RTM) `17.0.1000.7` (X64)
+- SQL Server Enterprise Developer Edition (64-bit) on Windows 10 Pro
+- SQL Server instance on `localhost`, using Windows authentication
 
 ## Database configuration
 
@@ -242,8 +240,6 @@ npm run build
   requested scope prioritized the working screens and API integration.
 - Production deployment, authentication/authorization, and secret management
   were not added; the project uses the required development tenant headers.
-- SQL Server edition-specific setup was not documented because the installed
-  edition could not be verified from this environment.
 
 ## Assumptions
 
