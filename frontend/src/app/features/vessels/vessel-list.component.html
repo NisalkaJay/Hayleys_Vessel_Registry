@@ -1,0 +1,37 @@
+<section class="page-heading">
+  <div><p class="eyebrow">Fleet operations</p><h1>Vessels</h1><p class="muted">Manage the vessels assigned to your company.</p></div>
+  <a class="button primary" routerLink="/vessels/new">Add vessel</a>
+</section>
+
+<section class="filters card">
+  <label>Search <input [formControl]="search" placeholder="Name or IMO number" /></label>
+  <label>Type
+    <select [formControl]="typeFilter"><option value="">All types</option>
+      @for (type of types(); track type.vesselTypeId) { <option [value]="type.vesselTypeId">{{ type.name }}</option> }
+    </select>
+  </label>
+  <label>Status
+    <select [formControl]="statusFilter"><option value="all">All statuses</option><option value="active">Active</option><option value="inactive">Inactive</option></select>
+  </label>
+</section>
+
+@if (loading()) { <div class="state card">Loading vessels...</div> }
+@else if (error()) { <div class="state card error-state">{{ error() }} <button class="button" (click)="load()">Retry</button></div> }
+@else {
+  <app-data-table [columns]="columns" [rows]="vessels()" [page]="page()" [pageSize]="pageSize()" [totalCount]="totalCount()" [rowTemplate]="rowTemplate" (pageChange)="changePage($event)" />
+}
+
+<ng-template #rowTemplate let-vessel>
+  <tr>
+    <td>{{ vessel.vesselName }}</td><td class="mono">{{ vessel.imoNumber }}</td><td>{{ vessel.vesselTypeName }}</td>
+    <td>{{ vessel.flagCountry }}</td><td>{{ vessel.grossTonnage | number }}</td><td>{{ vessel.yearBuilt }}</td>
+    <td><span class="status" [class.inactive]="!vessel.isActive">{{ vessel.isActive ? 'Active' : 'Inactive' }}</span></td>
+    <td class="actions"><a [routerLink]="['/vessels', vessel.vesselId, 'edit']">Edit</a>
+      @if (vessel.isActive) {
+        <button type="button" class="link danger" (click)="deactivate(vessel)">Deactivate</button>
+      } @else {
+        <button type="button" class="link" (click)="reactivate(vessel)">Reactivate</button>
+      }
+    </td>
+  </tr>
+</ng-template>
